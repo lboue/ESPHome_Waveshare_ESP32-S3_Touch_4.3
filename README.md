@@ -1,1 +1,1 @@
-# ESPHome_Waveshare_ESP32-S3_Touch_4.3
+# ESPHome Waveshare ESP32-S3 Touch_4.3
