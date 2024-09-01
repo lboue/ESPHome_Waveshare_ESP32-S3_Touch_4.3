@@ -1,0 +1,522 @@
+substitutions:
+  lightbulb:     "\U000F0335"
+  ceiling_light: "\U000F0769"
+  floor_lamp:    "\U000F08DD"
+  string_lights: "\U000F12BA"
+
+esphome:
+  name: waveshare-4-3-ch422g
+  friendly_name: Waveshare ESP32-S3-Touch-LCD-4.3
+  platformio_options:
+    build_flags: "-DBOARD_HAS_PSRAM"
+    board_build.arduino.memory_type: qio_opi
+    board_build.flash_mode: dio
+    board_upload.maximum_ram_size: 524288
+    board_build.flash_size: 8MB
+
+esp32:
+  # https://www.waveshare.com/wiki/ESP32-S3-Touch-LCD-4.3
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 8MB
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: y
+      CONFIG_ESP32S3_DATA_CACHE_64KB: y
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: y
+      CONFIG_SPIRAM_RODATA: y
+      CONFIG_ESPTOOLPY_FLASHSIZE_8MB: y
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "xrwXLQY88CdK1ytjIK4+6CFcvBBbEXwuXOGcAncfUt4="
+
+ota:
+  - platform: esphome
+    password: "c04b663b67658290f06a32d40ac1068c"
+
+wifi:
+  networks:
+  - ssid: !secret wifi_ssid
+    password: !secret wifi_password
+
+web_server:
+  port: 80   
+
+external_components:
+  - source:
+      type: git
+      url: https://github.com/clydebarrow/esphome
+      ref: 82264dc2440981873b8400d613e0cc32d229daa3 #previous commit - wont be needed in the future
+    components: [lvgl]
+
+  # CH422G I/O Expander
+  # https://github.com/esphome/esphome/pull/7356
+  - source: github://pr#7356
+    components: [ch422g]
+
+  # https://github.com/lboue/esphome/tree/rpi_dpi_rgb_enable_pin/esphome/components/rpi_dpi_rgb
+  - source: github://lboue/esphome@rpi_dpi_rgb_enable_pin
+    components: [ rpi_dpi_rgb ]
+    refresh: 0s
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+logger:
+  level: VERBOSE
+  hardware_uart: UART0
+
+i2c:
+  sda: GPIO08
+  scl: GPIO09
+  scan: True
+  id: bus_a
+
+ch422g:
+  - id: io_ex
+    address: 0x24
+
+display:
+    # 800×480 screen
+  - platform: rpi_dpi_rgb
+    id: my_display
+    rotation: 90
+    auto_clear_enabled: false
+    update_interval: never
+    color_order: RGB
+    pclk_frequency: 14MHz
+    dimensions:
+      width: 800
+      height: 480
+    de_pin:
+      number: 5
+    reset_pin:
+      ch422g: io_ex
+      number: 3
+    enable_pin:
+      ch422g: io_ex
+      number: 2      
+    hsync_pin:
+      number: 46
+      ignore_strapping_warning: true
+    vsync_pin:
+      number: 3
+      ignore_strapping_warning: true
+    pclk_pin: 7
+    pclk_inverted: false
+    hsync_back_porch: 10
+    hsync_front_porch: 20
+    hsync_pulse_width: 10
+    vsync_back_porch: 10
+    vsync_front_porch: 10
+    vsync_pulse_width: 10
+    data_pins:
+      red:
+        - 1
+        - 2
+        - 42
+        - 41
+        - 40
+      blue:
+        - 14
+        - 38
+        - 18
+        - 17
+        - 10
+      green:
+        - 39
+        - 0
+        - 45
+        - 48
+        - 47
+        - 21
+
+font:
+  - file:
+      type: gfonts
+      family: Roboto
+      weight: bold
+    id: roboto_16
+    size: 16
+
+  - file:
+      type: gfonts
+      family: Roboto
+      weight: bold
+    id: roboto24
+    size: 24
+    bpp: 4
+    extras:
+      - file: 'fonts/materialdesignicons-webfont.ttf' # http://materialdesignicons.com/cdn/7.4.47/ 
+        glyphs: [
+          "\U000F004B",
+          "\U0000f0ed",
+          "\U000F006E",
+          "\U000F012C",
+          "\U000F179B",
+          "\U000F0748",
+          "\U000F1A1B",
+          "\U000F02DC",
+          "\U000F0A02",
+          "\U000F035F",
+          "\U000F0156",
+          "\U000F0C5F", 
+          "\U000f0084",
+          "\U000f0091",
+          "\U000F0335",
+          ]
+
+  - file: "gfonts://Roboto"
+    id: roboto26
+    size: 34
+    bpp: 4
+    extras:
+      - file: 'fonts/materialdesignicons-webfont.ttf' # http://materialdesignicons.com/cdn/7.4.47/ 
+        glyphs: [
+          "\U000F004B",
+          "\U0000f0ed",
+          "\U000F006E",
+          "\U000F012C",
+          "\U000F179B",
+          "\U000F0748",
+          "\U000F1A1B",
+          "\U000F02DC",
+          "\U000F0A02",
+          "\U000F035F",
+          "\U000F0156",
+          "\U000F0C5F", 
+          "\U000f0084",
+          "\U000f0091",
+          "\U000F0335",
+          ]
+  - file: 'fonts/materialdesignicons-webfont.ttf' # http://materialdesignicons.com/cdn/7.4.47/ 
+    id: weather70
+    size: 70
+    bpp: 4
+    glyphs: &mdi-weather-glyphs
+      - "\U000F0590" # mdi-weather-cloudy
+      - "\U000F0F2F" # mdi-weather-cloudy-alert
+      - "\U000F0E6E" # mdi-weather-cloudy-arrow-right
+      - "\U000F0591" # mdi-weather-fog
+      - "\U000F0592" # mdi-weather-hail
+      - "\U000F0F30" # mdi-weather-hazy
+      - "\U000F0898" # mdi-weather-hurricane
+      - "\U000F0593" # mdi-weather-lightning
+      - "\U000F067E" # mdi-weather-lightning-rainy
+      - "\U000F0594" # mdi-weather-clear-night
+      - "\U000F0F31" # mdi-weather-night-partly-cloudy
+      - "\U000F0595" # mdi-weather-partly-cloudy
+      - "\U000F0F32" # mdi-weather-partly-lightning
+      - "\U000F0F33" # mdi-weather-partly-rainy
+      - "\U000F0F34" # mdi-weather-partly-snowy
+      - "\U000F0F35" # mdi-weather-partly-snowy-rainy
+      - "\U000F0596" # mdi-weather-pouring
+      - "\U000F0597" # mdi-weather-rainy
+      - "\U000F0598" # mdi-weather-snowy
+      - "\U000F0F36" # mdi-weather-snowy-heavy
+      - "\U000F067F" # mdi-weather-snowy-rainy
+      - "\U000F0599" # mdi-weather-sunny
+      - "\U000F0F37" # mdi-weather-sunny-alert
+      - "\U000F14E4" # mdi-weather-sunny-off
+      - "\U000F059A" # mdi-weather-sunset
+      - "\U000F059B" # mdi-weather-sunset-down
+      - "\U000F059C" # mdi-weather-sunset-up
+      - "\U000F0F38" # mdi-weather-tornado
+      - "\U000F059D" # mdi-weather-windy
+      - "\U000F059E" # mdi-weather-windy-variant
+
+  - file: 'fonts/materialdesignicons-webfont.ttf' # http://materialdesignicons.com/cdn/7.4.47/ 
+    id: light32
+    size: 34
+    bpp: 4
+    glyphs: [
+      "\U000F0335", # mdi-lightbulb
+      "\U000F0769", # mdi-ceiling-light
+      "\U000F08DD", # mdi-floor-lamp
+      "\U000F12BA", # mdi-string-lights
+      ]          
+      
+  - file: "gfonts://Roboto"
+    id: roboto10
+    size: 10
+    bpp: 4
+
+# has_gt911_5d = i2c.probe_device(0x5d);
+# has_gt911_14 = i2c.probe_device(0x14);
+touchscreen:
+  platform: gt911
+  id: my_touch
+  update_interval: 16ms
+  interrupt_pin: 4
+  reset_pin:
+    ch422g: io_ex
+    number: 1
+  on_touch:
+    - lambda: |-
+          ESP_LOGI("cal", "x=%d, y=%d, x_raw=%d, y_raw=%0d",
+              touch.x,
+              touch.y,
+              touch.x_raw,
+              touch.y_raw
+              );
+
+sensor:
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    id: wifi_signal_db
+    update_interval: 60s
+    entity_category: diagnostic
+    internal: true
+
+  - platform: copy
+    source_id: wifi_signal_db
+    name: "WiFi Strength"
+    filters:
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+    unit_of_measurement: "%"
+    entity_category: diagnostic
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+      entity_category: diagnostic
+    ssid:
+      name: "Connected SSID"
+      entity_category: diagnostic
+    mac_address:
+      name: "Mac Address"
+      entity_category: diagnostic
+
+#-------------------------------------------
+# LVGL Buttons
+#-------------------------------------------
+lvgl:
+  displays:
+    - display_id: my_display
+  touchscreens:
+    - touchscreen_id: my_touch
+  on_idle:
+    - timeout: 10s
+      then:
+        - logger.log: idle timeout
+        - if:
+            condition:
+              lvgl.is_idle:
+                timeout: 5s
+            then:
+              - logger.log: LVGL is idle
+    - timeout: 15s
+      then:
+        - logger.log: idle 15s timeout
+
+  style_definitions:
+    - id: style_line
+      line_color: 0x0000FF
+      line_width: 8
+      line_rounded: true
+    - id: date_style
+      text_font: roboto26
+      align: center
+      text_color: 0x333333
+      bg_opa: cover
+      radius: 4
+      pad_all: 2
+
+  theme:
+    btn:
+      text_font: roboto26
+      scroll_on_focus: true
+      group: general
+      radius: 25
+      width: 228
+      height: 120
+      pad_left: 10px
+      pad_top: 10px
+      pad_bottom: 10px
+      pad_right: 10px
+      shadow_width: 0
+      bg_color: 0x313131
+      text_color: 0xB6B6B6
+      checked:
+        #bg_color: 0xCC5E14   # Orange
+        #bg_color: 0x2CAE65   # Green
+        bg_color: 0x026a6e    # Dark Green
+        #bg_color: 0x0000FF   # Blue
+        #bg_color: 0x3792CB   # Blue
+        text_color: 0xB6B6B6
+
+  page_wrap: true
+  pages:
+    - id: main_page
+      skip: true
+      layout:
+        type: flex
+        flex_flow: column_wrap
+      width: 100%
+      bg_color: 0x000000
+      bg_opa: cover
+      pad_all: 5
+      widgets:
+        - btn:
+            #height: 223
+            checkable: true
+            id: lv_button_1      
+            widgets:
+              - label:
+                  text_font: roboto26
+                  align: top_left
+                  text: $lightbulb
+                  id: lv_button_1_icon
+              - label:
+                  align: center
+                  text: "Kitchen"
+                  long_mode: dot
+        - btn:
+            checkable: true
+            id: lv_button_2
+            widgets:
+              - label:
+                  text_font: roboto26
+                  align: top_left
+                  text: $lightbulb
+                  id: lv_button_2_icon
+              - label:
+                  align: center
+                  text: "Outdoor"
+                  long_mode: dot              
+        - btn:
+            checkable: true
+            id: lv_button_3
+            widgets:
+              - label:
+                  text_font: roboto26
+                  align: top_left
+                  text: $lightbulb
+                  id: lv_button_3_icon
+              - label:
+                  align: center
+                  text: "Living Room"
+                  long_mode: dot
+        - btn:
+            checkable: true
+            id: lv_button_4
+            widgets:
+              - label:
+                  text_font: roboto26
+                  align: top_left
+                  text: $lightbulb
+                  id: lv_button_4_icon
+              - label:
+                  align: center #bottom_left
+                  text: "Accent"
+                  long_mode: dot
+        - btn:
+            checkable: true
+            id: lv_button_5
+            widgets:
+              - label:
+                  text_font: roboto26
+                  align: top_left
+                  text: $lightbulb
+                  id: lv_button_5_icon
+              - label:
+                  align: center #bottom_left
+                  text: "Bed Room"
+                  long_mode: dot              
+        - btn:
+            checkable: true
+            id: lv_button_6
+            widgets:
+              - label:
+                  text_font: roboto26
+                  align: top_left
+                  text: $lightbulb
+                  id: lv_button_6_icon
+              - label:
+                  id: display_time
+                  align: center #bottom_left
+                  text: "00:00am"
+                  long_mode: dot
+        - btn:
+            checkable: true
+            id: lv_button_7
+            widgets:
+              - label:
+                  text_font: roboto26
+                  align: top_left
+                  text: $lightbulb
+                  id: lv_button_7_icon
+              - label:
+                  align: center #bottom_left
+                  text: "Fan"
+                  long_mode: dot
+        - btn:
+            checkable: true
+            id: lv_button_8
+            widgets:
+              - label:
+                  text_font: roboto26
+                  align: top_left
+                  text: $lightbulb
+                  id: lv_button_8_icon
+              - label:
+                  align: center #bottom_left
+                  text: "Timer"
+                  long_mode: dot              
+        - btn:
+            checkable: true
+            id: lv_button_9
+            widgets:
+              - label:
+                  text_font: roboto26
+                  align: top_left
+                  text: $lightbulb
+                  id: lv_button_9_icon
+              - label:
+                  align: center #bottom_left
+                  text: "Lamp"
+                  long_mode: dot
+        - btn:
+            checkable: true
+            id: lv_button_10
+            widgets:
+              - label:
+                  text_font: roboto26
+                  align: top_left
+                  text: $lightbulb
+                  id: lv_button_10_icon
+              - label:
+                  align: center #bottom_left
+                  text: "Wall Spot"
+                  long_mode: dot
+        - btn:
+            checkable: true
+            id: lv_button_11
+            widgets:
+              - label:
+                  text_font: roboto26
+                  align: top_left
+                  text: $lightbulb
+                  id: lv_button_11_icon
+              - label:
+                  align: center #bottom_left
+                  text: "Driveway"
+                  long_mode: dot
+        - btn:
+            checkable: true
+            id: lv_button_12
+            widgets:
+              - label:
+                  text_font: roboto26
+                  align: top_left
+                  text: $lightbulb
+                  id: lv_button_12_icon
+              - label:
+                  align: center #bottom_left
+                  text: "Button12"
+                  long_mode: dot
