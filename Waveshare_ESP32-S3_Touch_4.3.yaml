@@ -67,7 +67,7 @@ psram:
   speed: 80MHz
 
 logger:
-  level: VERBOSE
+  level: DEBUG
   hardware_uart: UART0
 
 i2c:
